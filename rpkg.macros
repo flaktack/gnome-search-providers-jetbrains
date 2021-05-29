@@ -1,0 +1,58 @@
+# These macros a required to correctly version the builds without requiring custom git tags.
+
+function c_git_version {
+    last_tag="$(git describe --tags --abbrev=0 | sed s,v,,)"
+    echo -n "$last_tag"
+}
+
+function c_git_release {
+    total_commits="$(git rev-list --count $(git describe --tags --abbrev=0)..HEAD)"
+    echo -n "$total_commits"
+}
+
+function c_tags {
+    git tag --format="%(refname:short) %(objectname:short)" --sort=taggerdate --list 'v*' --merged 2> /dev/null
+}
+
+
+function c_git_changelog {
+    declare name="$(git_name)" since_tag= until_tag= header_locale=POSIX header_date_format="%a %b %d %Y" body_wrap=80 "$@"
+
+    git_check_repo || return
+
+    if [ -z "$name" ]; then
+        log_error "name cannot be empty."
+        return 1
+    fi
+
+    changelog=
+    until_tag_hit=
+    while read -r tag_name tag_id; do
+        if [ -n "$until_tag" ] && [ -z "$until_tag_hit" ] && [ "$until_tag" != "$tag_name" ]; then
+            continue
+        fi
+        until_tag_hit=1
+
+        verrel="$tag_name"
+
+        if [ -z "$GIT_LEGACY" ]; then
+            formatted_record="$(git_formatted_changelog_record \
+                verrel="$verrel" tag_id="$tag_id" header_locale="$header_locale" header_date_format="$header_date_format" body_wrap="$body_wrap")" || return
+        else
+            formatted_record="$(git_formatted_changelog_record_legacy \
+                verrel="$verrel" header_locale="$header_locale" header_date_format="$header_date_format" body_wrap="$body_wrap")" || return
+        fi
+
+        if [ -n "$changelog" ]; then
+            changelog="$changelog"$'\n\n'
+        fi
+
+        changelog="${changelog}${formatted_record}"
+
+        if [ "$since_tag" = "$tag_name" ]; then
+            break
+        fi
+    done < <(c_tags)
+
+    output "$changelog"
+}

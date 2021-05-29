@@ -1,0 +1,86 @@
+# The following tag is to get correct syntax highlighting for this file in vim text editor
+# vim: syntax=spec
+#
+# To build run `rpkg local` within a clone of the git source.
+
+%global srcname {{{ git_dir_name }}}
+%global debug_package %{nil}
+
+Name:                    %srcname
+Version:                 {{{ c_git_version }}}
+Release:                 {{{ c_git_release }}}%{?dist}
+Summary:                 Add recent projects of various Jetbrains IDEs to Gnome search.
+
+License:                 MPL2
+URL:                     https://github.com/lunaryorn/%{srcname}
+VCS:                     {{{ git_dir_vcs }}}
+
+Source:                  {{{ git_dir_pack }}}
+
+BuildRequires:           rust >= 1.50
+BuildRequires:           cargo
+BuildRequires:           glib2-devel
+BuildRequires:           make
+BuildRequires:           systemd
+BuildRequires:           systemd-devel
+BuildRequires:           systemd-rpm-macros
+
+Requires:                gnome-shell
+
+%description
+Supports:
+ ---
+ Android Studio (toolbox)
+ CLion (toolbox)
+ GoLand (toolbox)
+ IDEA (toolbox)
+ IDEA Community Edition (toolbox)
+ PHPStorm (toolbox)
+ PyCharm (toolbox)
+ Rider (toolbox)
+ RubyMine (toolbox)
+ WebStorm (toolbox)
+ ---
+Under the hood, this is a small systemd user service that implements the search provider DBus API and exposes recent projects from Jetbrains IDEs.
+
+
+#-- PREP, BUILD & INSTALL -----------------------------------------------------#
+%prep
+{{{ git_dir_setup_macro }}}
+
+%build
+%make_build
+
+%install
+%make_install DATADIR=%{_datadir} LIBEXECDIR=%{_libexecdir}/%{name} USERUNITDIR=%{_userunitdir}
+
+%post
+%systemd_user_post %{srcname}.service
+
+%preun
+%systemd_user_preun %{srcname}.service
+
+
+#-- FILES ---------------------------------------------------------------------#
+%files
+%{_libexecdir}/%{name}/%{srcname}
+%{_userunitdir}/gnome-search-providers-jetbrains.service
+%{_datadir}/dbus-1/services/de.swsnr.searchprovider.Jetbrains.service
+%{_datadir}/gnome-shell/search-providers/de.swsnr.searchprovider.jetbrains.toolbox.clion.ini
+%{_datadir}/gnome-shell/search-providers/de.swsnr.searchprovider.jetbrains.toolbox.goland.ini
+%{_datadir}/gnome-shell/search-providers/de.swsnr.searchprovider.jetbrains.toolbox.idea-ce.ini
+%{_datadir}/gnome-shell/search-providers/de.swsnr.searchprovider.jetbrains.toolbox.idea.ini
+%{_datadir}/gnome-shell/search-providers/de.swsnr.searchprovider.jetbrains.toolbox.phpstorm.ini
+%{_datadir}/gnome-shell/search-providers/de.swsnr.searchprovider.jetbrains.toolbox.pycharm.ini
+%{_datadir}/gnome-shell/search-providers/de.swsnr.searchprovider.jetbrains.toolbox.rider.ini
+%{_datadir}/gnome-shell/search-providers/de.swsnr.searchprovider.jetbrains.toolbox.rubymine.ini
+%{_datadir}/gnome-shell/search-providers/de.swsnr.searchprovider.jetbrains.toolbox.studio.ini
+%{_datadir}/gnome-shell/search-providers/de.swsnr.searchprovider.jetbrains.toolbox.webstorm.ini
+
+
+#-- CHANGELOG -----------------------------------------------------------------#
+%changelog
+
+* Thu Dec 01 2022 Sebastian Wiesner <sebastian@swsnr.de> v1.12.2
+(none)
+
